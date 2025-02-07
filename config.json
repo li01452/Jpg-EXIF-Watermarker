@@ -1,0 +1,19 @@
+{
+    "outputFolder": "已处理",
+    "noExifFolder": "无EXIF信息",
+    "jpegQuality": 70,
+    "amapAPIKey": "不填写无法获取位置",
+    "maxConcurrency": 5,
+    "fontPath": "C:/Windows/Fonts/msyh.ttc",
+    "watermarkSettings": {
+        "fontSize": 0.02,
+        "widthPadding": 0.02,
+        "heightPadding": 0.01,
+        "color": {
+            "r": 255,
+            "g": 165,
+            "b": 0,
+            "a": 255
+        }
+    }
+}
