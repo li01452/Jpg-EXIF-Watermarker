@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -66,9 +67,9 @@ type AmapResponse struct {
 	Status    string `json:"status"`
 	Regeocode struct {
 		AddressComponent struct {
-			Province string   `json:"province"`
-			City     []string `json:"city"`
-			District string   `json:"district"`
+			Province string      `json:"province"`
+			City     interface{} `json:"city"` // 兼容字符串或数组
+			District string      `json:"district"`
 		} `json:"addressComponent"`
 	} `json:"regeocode"`
 }
@@ -192,14 +193,17 @@ func processImage(filename string, processedFiles map[string]bool) error {
 	}
 
 	addressChan := make(chan string, 1)
-
 	go func() {
 		lat, long, err := x.LatLong()
 		if err != nil {
+			log.Printf("无法获取 GPS 数据: %v", err)
 			addressChan <- ""
 			return
 		}
+		log.Printf("解析到的 GPS 坐标: lat=%f, long=%f", lat, long)
+
 		address := getAddressFromGPS(lat, long)
+		log.Printf("获取的地址: %s", address)
 		addressChan <- address
 	}()
 
@@ -268,13 +272,10 @@ func addWatermark(img image.Image, text string) image.Image {
 
 	lines := strings.Split(text, "\n")
 	lineHeight := int(fontSize * 1.2)
-	maxWidth := 0
-	for _, line := range lines {
-		width := int(fontSize * float64(len(line)) * 0.6)
-		if width > maxWidth {
-			maxWidth = width
-		}
-	}
+	//计算地址宽度
+	addressWidth := float64(len(lines[1])) * 0.33
+	//宽度按时间和地址中最宽的计算
+	maxWidth := int(fontSize * math.Max(float64(len(lines[0]))*0.5, addressWidth))
 
 	x := bounds.Max.X - maxWidth - widthPadding
 	y := bounds.Max.Y - (lineHeight * len(lines)) - heightPadding
@@ -373,10 +374,13 @@ func copyToNoExifFolder(filename string) error {
 	return nil
 }
 
+// 通过经纬度调用高德API获取地址
 func getAddressFromGPS(lat, long float64) string {
 	if len(config.AmapAPIKey) == 0 {
+		log.Println("API Key 为空")
 		return ""
 	}
+
 	url := fmt.Sprintf("https://restapi.amap.com/v3/geocode/regeo?output=JSON&location=%.6f,%.6f&key=%s&radius=10", long, lat, config.AmapAPIKey)
 
 	resp, err := http.Get(url)
@@ -395,7 +399,7 @@ func getAddressFromGPS(lat, long float64) string {
 	var amapResp AmapResponse
 	err = json.Unmarshal(body, &amapResp)
 	if err != nil {
-		log.Printf("解析API响应失败: %v", err)
+		log.Printf("解析 API 响应失败，状态码: %d，响应体内容: %s，错误信息: %v", resp.StatusCode, string(body), err)
 		return ""
 	}
 
@@ -405,8 +409,22 @@ func getAddressFromGPS(lat, long float64) string {
 	}
 
 	address := amapResp.Regeocode.AddressComponent.Province
-	if len(amapResp.Regeocode.AddressComponent.City) > 0 {
-		address += amapResp.Regeocode.AddressComponent.City[0]
+
+	// 处理 city 可能是字符串或数组的情况
+	var cityName string
+	switch city := amapResp.Regeocode.AddressComponent.City.(type) {
+	case string:
+		cityName = city
+	case []interface{}:
+		if len(city) > 0 {
+			if str, ok := city[0].(string); ok {
+				cityName = str
+			}
+		}
+	}
+
+	if cityName != "" {
+		address += cityName
 	}
 	address += amapResp.Regeocode.AddressComponent.District
 
@@ -419,7 +437,5 @@ func saveConfig(configJSON string) {
 		fmt.Println("生成配置文件时出错:", err)
 	} else {
 		fmt.Println("没有找到配置文件，已重新生成配置文件 config.json")
-		fmt.Println("重新运行程序即可，按下回车键退出...")
-		fmt.Scanln() // 等待用户输入
 	}
 }
