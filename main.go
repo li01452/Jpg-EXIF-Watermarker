@@ -98,8 +98,8 @@ func LoadConfig() error {
 func main() {
 	fmt.Println("开始处理图片,若有问题请检查process.log")
 	if err := LoadConfig(); err != nil {
-		log.Fatalf("加载配置失败: %v", err)
 		saveConfig(configJSON)
+		log.Fatalf("加载配置失败: %v", err)
 	}
 
 	sem := make(chan struct{}, config.MaxConcurrency)
@@ -117,6 +117,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("获取jpg文件失败: %v", err)
 	}
+	fmt.Println("jpg文件数量:", len(files))
 
 	for _, file := range files {
 		sem <- struct{}{}
@@ -134,6 +135,8 @@ func main() {
 
 	wg.Wait()
 	log.Println("所有文件处理完成")
+	fmt.Println("程序运行结束，按下回车键退出...")
+	fmt.Scanln() // 等待用户输入
 }
 
 func initializeLogger() error {
@@ -371,6 +374,9 @@ func copyToNoExifFolder(filename string) error {
 }
 
 func getAddressFromGPS(lat, long float64) string {
+	if len(config.AmapAPIKey) == 0 {
+		return ""
+	}
 	url := fmt.Sprintf("https://restapi.amap.com/v3/geocode/regeo?output=JSON&location=%.6f,%.6f&key=%s&radius=10", long, lat, config.AmapAPIKey)
 
 	resp, err := http.Get(url)
@@ -410,8 +416,10 @@ func getAddressFromGPS(lat, long float64) string {
 func saveConfig(configJSON string) {
 	err := os.WriteFile("config.json", []byte(configJSON), 0644)
 	if err != nil {
-		fmt.Println("保存配置文件时出错:", err)
+		fmt.Println("生成配置文件时出错:", err)
 	} else {
-		fmt.Println("配置文件已成功保存到 config.json")
+		fmt.Println("没有找到配置文件，已重新生成配置文件 config.json")
+		fmt.Println("重新运行程序即可，按下回车键退出...")
+		fmt.Scanln() // 等待用户输入
 	}
 }
