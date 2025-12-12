@@ -12,35 +12,45 @@
 
 ## 配置文件
 
-配置文件为 `config.json`，默认配置如下：
+配置文件为 `config.yaml`，支持注释，默认配置如下：
 
-```json
-{
-    "outputFolder": "已处理",
-    "noExifFolder": "无EXIF信息",
-    "jpegQuality": 70,
-    "amapAPIKey": "",
-    "maxConcurrency": 5,
-    "fontPath": "C:/Windows/Fonts/msyh.ttc",
-    "watermarkSettings": {
-        "fontSize": 0.02,
-        "widthPadding": 0.02,
-        "heightPadding": 0.01,
-        "color": {
-            "r": 255,
-            "g": 165,
-            "b": 0,
-            "a": 255
-        }
-    }
-}
+```yaml
+# ==================== 基础设置 ====================
+outputFolder: "已处理"           # 处理完成的图片输出目录
+noExifFolder: "无EXIF信息"       # 无EXIF信息的图片存放目录
+jpegQuality: 70                  # JPEG压缩质量 (1-100)
+maxConcurrency: 5                # 并发处理数量
+
+# ==================== 字体设置 ====================
+fontPath: "C:/Windows/Fonts/msyh.ttc"  # 字体文件路径
+
+# ==================== 时间格式 ====================
+timeFormat: "2006-01-02 15:04:05"      # Go语言时间格式模板
+
+# ==================== 地理位置设置 ====================
+amapAPIKey: ""                   # 高德地图API密钥
+showFullAddress: false           # 是否显示完整地址
+
+# ==================== 水印设置 ====================
+watermarkSettings:
+  fontSize: 0.02                 # 字体大小 (相对于图片长边的比例)
+  widthPadding: 0.02             # 水印距离右边界距离
+  heightPadding: 0.01            # 水印距离底部距离
+  color:
+    r: 255                       # 红色分量 (0-255)
+    g: 165                       # 绿色分量
+    b: 0                         # 蓝色分量
+    a: 255                       # 透明度 (255=不透明)
 ```
+
 * `outputFolder`：处理后的图片存放目录。
 * `noExifFolder`：无 EXIF 信息的图片存放目录。
 * `jpegQuality`：保存图片的 JPEG 品质。
-* `amapAPIKey`：高德地图 API 的 Key，用于获取地址信息, 可在这里申请[高德控制台](https://console.amap.com/dev/key/app)。
+* `amapAPIKey`：高德地图 API 的 Key，用于获取地址信息，可在 [高德控制台](https://console.amap.com/dev/key/app) 申请。
 * `maxConcurrency`：最大并发数。
 * `fontPath`：水印字体文件路径。
+* `timeFormat`：时间格式模板（Go语言格式）。
+* `showFullAddress`：是否显示完整地址（true=完整地址，false=省市区）。
 * `watermarkSettings`：水印相关设置，包括字体大小、边距、颜色等。
 ## 使用方法
 
@@ -56,7 +66,7 @@ go get -u github.com/rwcarlsen/goexif/exif
 
 ### 配置文件：
 
-将默认配置文件内容保存为 `config.json`，并根据需要修改配置项。
+将默认配置文件内容保存为 `config.yaml`，并根据需要修改配置项。
 
 ### 运行程序：
 
@@ -78,5 +88,5 @@ go run main.go
 
 ## 项目结构
 
-* `config.json`：配置文件。
+* `config.yaml`：配置文件（支持注释）。
 * `process.log`：日志文件，记录处理过程中的信息。
